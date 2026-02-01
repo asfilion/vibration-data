@@ -8,12 +8,11 @@ This project uses the [Vibration, Acoustic, Temperature, and Motor Current Datas
 
 ### Sensor Measurements
 
-| Sensor Type | Channels | Format | File Extension |
-|-------------|----------|--------|----------------|
-| Vibration | 4 (x/y at two housing locations) | MAT | `.mat` |
-| Acoustic | - | MAT | `.mat` |
-| Temperature | 2 (housing points) | TDMS | `.tdms` |
-| Motor Current | 3 (three-phase) | TDMS | `.tdms` |
+| Sensor Type | Channels | Hardware | Format |
+|-------------|----------|----------|--------|
+| Vibration | 4 (x/y at two housing locations) | - | `.mat` |
+| Temperature | 2 (housing points) | NI 9210 (K-type thermocouple) | `.tdms` |
+| Motor Current | 3 (three-phase) | NI 9775 | `.tdms` |
 
 ### Experimental Conditions
 
@@ -30,10 +29,15 @@ This project uses the [Vibration, Acoustic, Temperature, and Motor Current Datas
 
 ### Signal Characteristics
 
-- **Sampling rate:** 25,600 Hz
-- **Duration:** 60-300 seconds (varies by condition)
+| Parameter | MAT (Vibration) | TDMS (Temp/Current) |
+|-----------|-----------------|---------------------|
+| Sample rate | 25,600 Hz | 25,608 Hz |
+| Duration | 60-300 s | 60-300 s |
+| Units | g (acceleration) | °C, A |
+
 - **Total files:** 45 MAT + 45 TDMS pairs
 - **Dataset size:** ~8 GB (after extraction)
+- **Motor frequency:** 50 Hz (European grid)
 
 ## Getting Started
 
@@ -47,7 +51,7 @@ run('downloadDataset.m')
 
 This downloads ~4 GB from Mendeley Data and extracts all files to the `rawdata/` folder.
 
-### Load Data
+### Load Vibration Data (MAT)
 
 ```matlab
 data = load("rawdata/0Nm_Normal.mat");
@@ -60,9 +64,22 @@ t = (0:nSamples-1) / fs;
 
 % Vibration data (4 channels in g units)
 vibration = Signal.y_values.values;  % [N x 4] double
+```
 
-% Channel names
-channelNames = Signal.function_record.name;  % {'3:Point1', '4:Point2', ...}
+### Load Temperature/Current Data (TDMS)
+
+Requires Data Acquisition Toolbox.
+
+```matlab
+data = tdmsread("rawdata/0Nm_Normal.tdms");
+logData = data{2};  % Group 2 contains sensor data
+
+% Temperature (°C)
+temp1 = logData{:, 1};
+temp2 = logData{:, 2};
+
+% Motor current (A) - 3-phase
+current = logData{:, 3:5};
 ```
 
 ## File Naming Convention
@@ -77,12 +94,12 @@ Examples:
 ## Requirements
 
 - MATLAB R2020a or later
-- Data Acquisition Toolbox (optional, for TDMS files)
+- Data Acquisition Toolbox (for TDMS files)
 
 ## Known Issues
 
 1. Some 2Nm unbalance files have a typo: `Unbalalnce` instead of `Unbalance`
-2. TDMS files require Data Acquisition Toolbox to read
+2. Sample rate mismatch: MAT files (25,600 Hz) vs TDMS files (25,608 Hz) - resample for synchronization
 
 ## License
 
