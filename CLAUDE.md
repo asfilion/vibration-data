@@ -92,11 +92,58 @@ This 0.03% difference causes slight sample count mismatches. For synchronized an
 - TDMS files: 45 (4.39 GB)
 - Total usable: 8.08 GB
 
+## Processed Data
+
+**Location:** `processed/`
+
+After running the ETL pipeline, data is stored in Parquet format:
+- `processed/catalog.parquet` - Metadata index for all sessions
+- `processed/data/*.parquet` - Sensor data (nested schema)
+
+### Schema (Nested)
+
+One row per channel per session:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| SessionID | string | e.g., "0Nm_BPFI_03" |
+| Load | string | "0Nm", "2Nm", "4Nm" |
+| FaultType | string | "Normal", "BPFI", "BPFO", "Misalign", "Unbalance" |
+| Severity | string | Fault severity level |
+| SampleRate | double | 25600 Hz (all channels synchronized) |
+| ChannelName | string | "Vibration_1", "Temperature_1", etc. |
+| ChannelType | string | "Vibration", "Temperature", "Current" |
+| Unit | string | "g", "degC", "A" |
+| Time | cell | {[N×1 double]} time vector in seconds |
+| Values | cell | {[N×1 double]} signal values |
+
+### Query Data
+
+```matlab
+% Load by fault type
+T = queryData(FaultType="BPFI");
+
+% Load by condition
+T = queryData(Load="0Nm", Channels="Vibration");
+
+% Load specific sessions
+T = queryData(SessionID=["0Nm_BPFI_03", "2Nm_Normal"]);
+
+% Convert to wide timetable for analysis
+tt = nested2wide(T, SessionID="0Nm_BPFI_03");
+```
+
 ## Commands
 
 Download and extract dataset:
 ```matlab
 run('downloadDataset.m')
+```
+
+Build catalog and export to Parquet:
+```matlab
+catalog = buildCatalog("rawdata", SavePath="processed/catalog.parquet");
+exportToParquet(catalog, "processed/data");
 ```
 
 Run MATLAB scripts:
